@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use COD::AtomProperties;
+use JSON;
+
+my $symprec = 1e-5;
+
+my $json = decode_json join '', <>;
+
+for my $structure (@$json) {
+    # TODO: Check actual "species", not their labels
+    my @types = map { $COD::AtomProperties::atoms{$_}->{atomic_number} }
+                    $structure->{species_at_sites};
+    get_sym_dataset( $structure->{lattice_vectors},
+                     $structure->{cartesian_site_positions}, # need to be fractional
+                     \@types,
+                     $symprec );
+}
