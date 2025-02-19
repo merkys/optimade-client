@@ -3,7 +3,11 @@
 use strict;
 use warnings;
 
+use COD::Algebra::Vector qw( matrix_vector_mul );
 use COD::AtomProperties;
+use COD::CIF::Data qw( get_cell );
+use COD::Cell qw( vectors2cell );
+use COD::Fractional qw( symop_fract_from_ortho );
 use JSON;
 
 my $symprec = 1e-5;
@@ -11,11 +15,15 @@ my $symprec = 1e-5;
 my $json = decode_json join '', <>;
 
 for my $structure (@$json) {
+    my $o2f = symop_fract_from_ortho( vectors2cell( @{$structure->{lattice_vectors}} ) );
+    my @coordinates = map { matrix_vector_mul( $o2f, $_ ) } @{$structure->{cartesian_site_positions}};
+
     # TODO: Check actual "species", not their labels
     my @types = map { $COD::AtomProperties::atoms{$_}->{atomic_number} }
-                    $structure->{species_at_sites};
+                    @{$structure->{species_at_sites}};
+
     get_sym_dataset( $structure->{lattice_vectors},
-                     $structure->{cartesian_site_positions}, # need to be fractional
+                     \@coordinates,
                      \@types,
                      $symprec );
 }
