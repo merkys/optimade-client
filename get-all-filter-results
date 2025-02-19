@@ -10,18 +10,19 @@ my $URL = shift @ARGV;
 
 my $ua = LWP::UserAgent->new( agent => 'optimade-client/0.0.0 (contact cod-bugs@ibt.lt)' );
 
-print STDERR "GET $URL\n";
-my $response = $ua->get($URL);
-die $response->status_line unless $response->is_success;
-
-my $json = decode_json( $response->decoded_content );
-my @data = @{$json->{data}};
-while( $json->{links}{next}{href} ) {
+my @data;
+while( $URL ) {
     sleep 1;
-    print STDERR "GET $json->{links}{next}{href}\n";
-    $response = $ua->get($json->{links}{next}{href});
+    print STDERR "GET $URL\n";
+    my $response = $ua->get($URL);
     die $response->status_line unless $response->is_success;
-    $json = decode_json( $response->decoded_content );
+    my $json = decode_json( $response->decoded_content );
     push @data, @{$json->{data}};
+    if( $json->{links}{next} ) {
+        $URL = $json->{links}{next};
+        $URL = $URL->{href} if ref $URL eq 'HASH';
+    } else {
+        last;
+    }
 }
 print encode_json( \@data );
