@@ -9,7 +9,9 @@ use COD::CIF::Data qw( get_cell );
 use COD::Cell qw( vectors2cell );
 use COD::Fractional qw( symop_fract_from_ortho );
 use COD::SPGLib qw( get_sym_dataset );
+use COD::Spacegroups::Lookup::COD qw( @table );
 use JSON;
+use List::Util qw( first );
 
 my $symprec = 1e-5;
 
@@ -28,6 +30,11 @@ for my $structure (@$json) {
                                     \@types,
                                     $symprec );
 
-    use Data::Dumper;
-    print Dumper $symmetry;
+    my $spacegroup = first { $_->{hall} eq $symmetry->{hall} } @table;
+    if( $spacegroup ) {
+        print $spacegroup->{crystal_class}, "\t", $spacegroup->{number}, "\n";
+    }
+
+    # use Data::Dumper;
+    # print Dumper $symmetry;
 }
