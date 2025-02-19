@@ -3,8 +3,31 @@
 use strict;
 use warnings;
 
+use File::Basename qw( basename );
+use Getopt::Long::Descriptive;
 use JSON;
 use LWP::UserAgent;
+
+my $basename = basename $0;
+my( $opt, $usage ) = describe_options( <<"END" . 'OPTIONS',
+USAGE
+    $basename [<args>] URL
+
+DESCRIPTION
+    $basename fetches paginated OPTIMADE query results.
+
+END
+    [ 'page-limit', 'limit the number of pages' ],
+    [],
+    [ 'help', 'print usage message and exit', { shortcircuit => 1 } ],
+);
+
+if( $opt->help ) {
+    print $usage->text;
+    exit;
+}
+
+my $page_limit = $opt->page_limit;
 
 my $URL = shift @ARGV;
 
@@ -24,5 +47,10 @@ while( $URL ) {
     } else {
         last;
     }
+    if( defined $page_limit ) {
+        $page_limit--;
+        last unless $page_limit;
+    }
 }
+
 print encode_json( \@data );
