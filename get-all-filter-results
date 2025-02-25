@@ -17,7 +17,8 @@ DESCRIPTION
     $basename fetches paginated OPTIMADE query results.
 
 END
-    [ 'page-limit', 'limit the number of pages' ],
+    [ 'page-limit=i', 'limit the number of pages' ],
+    [ 'format=s', 'output format (default: json)' ],
     [],
     [ 'help', 'print usage message and exit', { shortcircuit => 1 } ],
 );
@@ -28,6 +29,13 @@ if( $opt->help ) {
 }
 
 my $page_limit = $opt->page_limit;
+
+my $format = 'json';
+if( $opt->format && $opt->format =~ /^json(l(ines)?)?$/ ) {
+    $format = 'jsonlines' if $opt->format =~ /^jsonl(ines)?$/;
+} else {
+    die "unknown output format '". $opt->format . "'\n";
+}
 
 my $URL = shift @ARGV;
 
@@ -40,7 +48,13 @@ while( $URL ) {
     my $response = $ua->get($URL);
     die $response->status_line unless $response->is_success;
     my $json = decode_json( $response->decoded_content );
-    push @data, @{$json->{data}};
+    if( $format eq 'json' ) {
+        push @data, @{$json->{data}};
+    } else {
+        my $output = encode_json( $json );
+        $output =~ s/\n//g;
+        print $output, "\n";
+    }
     if( $json->{links}{next} ) {
         $URL = $json->{links}{next};
         $URL = $URL->{href} if ref $URL eq 'HASH';
@@ -53,4 +67,4 @@ while( $URL ) {
     }
 }
 
-print encode_json( \@data );
+print encode_json( \@data ) if $format eq 'json';
