@@ -51,9 +51,11 @@ while( $URL ) {
     if( $format eq 'json' ) {
         push @data, @{$json->{data}};
     } else {
-        my $output = encode_json( $json );
-        $output =~ s/\n//g;
-        print $output, "\n";
+        for my $entry (@{$json->{data}}) {
+            my $output = encode_json( $entry );
+            $output =~ s/\n//g;
+            print $output, "\n";
+        }
     }
     if( $json->{links}{next} ) {
         $URL = $json->{links}{next};
