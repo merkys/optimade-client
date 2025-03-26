@@ -18,7 +18,7 @@ DESCRIPTION
 
 END
     [ 'page-limit=i', 'limit the number of pages' ],
-    [ 'format=s', 'output format (default: json)' ],
+    [ 'format=s', 'output format (default: json)', { default => 'json' } ],
     [],
     [ 'help', 'print usage message and exit', { shortcircuit => 1 } ],
 );
@@ -31,7 +31,7 @@ if( $opt->help ) {
 my $page_limit = $opt->page_limit;
 
 my $format = 'json';
-if( $opt->format && $opt->format =~ /^json(l(ines)?)?$/ ) {
+if( $opt->format =~ /^json(l(ines)?)?$/ ) {
     $format = 'jsonlines' if $opt->format =~ /^jsonl(ines)?$/;
 } else {
     die "unknown output format '". $opt->format . "'\n";
