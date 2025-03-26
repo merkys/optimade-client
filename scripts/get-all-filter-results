@@ -7,6 +7,7 @@ use File::Basename qw( basename );
 use Getopt::Long::Descriptive;
 use JSON;
 use LWP::UserAgent;
+use URL::Encode qw( url_params_multi );
 
 my $basename = basename $0;
 my( $opt, $usage ) = describe_options( <<"END" . 'OPTIONS',
@@ -19,6 +20,7 @@ DESCRIPTION
 END
     [ 'page-limit=i', 'limit the number of pages' ],
     [ 'format=s', 'output format (default: json)', { default => 'json' } ],
+    [ 'resolve-timeouts', 'attempt to resolve timeouts' ],
     [],
     [ 'help', 'print usage message and exit', { shortcircuit => 1 } ],
 );
@@ -46,6 +48,22 @@ while( $URL ) {
     sleep 1;
     print STDERR "GET $URL\n";
     my $response = $ua->get($URL);
+    if( !$response->is_success ) {
+        if( !$opt->resolve_timeouts || $response->status_line ne '500 read timeout' ) {
+            die $response->status_line . "\n";
+        }
+
+        my( $base_url, $query_string ) = split /\?/, $URL, 2;
+        my $URL_params = url_params_multi( $query_string );
+        if( !exists $URL_params->{page_offset} ||
+            !exists $URL_params->{page_limit} ) {
+            die "cannot resolve a timeout, parsed URL does not contain processable pagination parameters\n";
+        }
+
+        $URL_params->{page_offset}[-1] += $URL_params->{page_limit}[-1];
+        $URL = query_string( $base_url, $URL_params );
+        redo;
+    }
     die $response->status_line unless $response->is_success;
     my $json = decode_json( $response->decoded_content );
     if( $format eq 'json' ) {
@@ -70,3 +88,15 @@ while( $URL ) {
 }
 
 print encode_json( \@data ) if $format eq 'json';
+
+sub query_string
+{
+    my( $base_url, $parameters ) = @_;
+    my @key_value_pairs;
+    for my $key (sort keys %$parameters) {
+        for my $value (@{$parameters->{$key}}) {
+            push @key_value_pairs, $key . '=' . $value;
+        }
+    }
+    return $base_url . '?' . join '&', @key_value_pairs;
+}
